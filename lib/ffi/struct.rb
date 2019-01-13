@@ -52,16 +52,18 @@ module FFI
   # For more information, see http://github.com/ffi/ffi/wiki/Structs
   class Struct
 
+    attr_reader :pointer, :layout
+
     # @param [AbstractMemory] pointer
     # @param [Array] args
     # @return [self]
     def initialize(pointer = nil, *args)
       if args.empty?
-        layout = self.class.instance_variable_get(:@layout)
+        @layout = self.class.instance_variable_get(:@layout)
       else
-        layout = self.class.layout(*args)
+        @layout = self.class.layout(*args)
       end
-      unless FFI::StructLayout === layout
+      unless FFI::StructLayout === @layout
         raise RuntimeError, "invalid Struct layout for #{self.class}"
       end
 
@@ -71,11 +73,69 @@ module FFI
         end
         @pointer = pointer
       else
-        @pointer = MemoryPointer.new(layout.size, 1, true)
+        @pointer = MemoryPointer.new(@layout.size, 1, true)
       end
 
-      initialize_backend(layout, @pointer)
+      initialize_backend(@layout, @pointer)
     end
+
+    # @param [AbstractMemory] pointer
+    # @return [self]
+    # Make Struct point to +pointer+.
+    def pointer=(pointer)
+      unless FFI::AbstractMemory === pointer
+        raise TypeError, "wrong argument type #{pointer.class} (expected Pointer or Buffer)"
+      end
+
+      layout = get_layout
+      if layout.size > pointer.size
+        raise ArgumentError, "memory of #{pointer.size} bytes too small for struct" +
+                             " #{self.class} (expected at least #{@layout.size})"
+      end
+
+      @pointer = pointer
+      initialize_backend(@layout, @pointer)
+    end
+    private :pointer=
+
+    # @param [StructLayout] layout
+    # @return [self]
+    # Set the Struct's layout.
+    def layout=(layout)
+      unless FFI::StructLayout === layout
+        raise TypeError, "wrong argument type #{layout.class} (expected #{FFI::StructLayout})"
+      end
+      @layout = layout
+      initialize_backend(@layout, @pointer)
+    end
+    private :layout=
+
+    # (see Pointer#order)
+    def order(*args)
+      if args.empty?
+        @pointer.order
+      else
+        copy = dup
+        pointer = @pointer.order(*args)
+        self.pointer = pointer
+        copy
+      end
+    end
+
+    def get_layout
+      if defined?(@layout)
+        @layout
+      else
+        layout = self.class.instance_variable_get(:@layout)
+        unless FFI::StructLayout === layout
+          raise RuntimeError, "invalid Struct layout for #{self.class}"
+        end
+        @layout = layout
+        initialize_backend(@layout, @pointer)
+        layout
+      end
+    end
+    private :get_layout
 
     # Get struct size
     # @return [Numeric]
