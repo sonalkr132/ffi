@@ -198,9 +198,9 @@ describe "Struct tests" do
       end
 
     end
-    s = InitializeWithoutSuper.new(0x1eefbeef, 0xdeadcafebabe)
-    expect(s[:a]).to eq(0x1eefbeef)
-    expect(s[:b]).to eq(0xdeadcafebabe)
+    expect {
+      InitializeWithoutSuper.new(0x1eefbeef, 0xdeadcafebabe)
+    }.to raise_error(RuntimeError)
   end
 
   it "Can use Struct subclass as parameter type" do

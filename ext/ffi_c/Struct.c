@@ -67,7 +67,6 @@ typedef struct InlineArray_ {
 static void struct_mark(Struct *);
 static void struct_free(Struct *);
 static VALUE struct_class_layout(VALUE klass);
-static void struct_malloc(Struct* s);
 static void inline_array_mark(InlineArray *);
 static void store_reference_value(StructField* f, Struct* s, VALUE value);
 
@@ -191,27 +190,14 @@ struct_validate(VALUE self)
     Data_Get_Struct(self, Struct, s);
 
     if (struct_layout(self) == NULL) {
-        rb_raise(rb_eRuntimeError, "struct layout == null");
+        rb_raise(rb_eRuntimeError, "struct layout == null (FFI::Struct#initialize not called)");
     }
 
     if (s->pointer == NULL) {
-        struct_malloc(s);
+        rb_raise(rb_eRuntimeError, "struct pointer == NULL (FFI::Struct#initialize not called)");
     }
 
     return s;
-}
-
-static void
-struct_malloc(Struct* s)
-{
-    if (s->rbPointer == Qnil) {
-        s->rbPointer = rbffi_MemoryPointer_NewInstance(s->layout->size, 1, true);
-
-    } else if (!rb_obj_is_kind_of(s->rbPointer, rbffi_AbstractMemoryClass)) {
-        rb_raise(rb_eRuntimeError, "invalid pointer in struct");
-    }
-
-    s->pointer = (AbstractMemory *) DATA_PTR(s->rbPointer);
 }
 
 static void
