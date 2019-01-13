@@ -38,7 +38,44 @@ require 'ffi/struct_by_reference'
 
 module FFI
 
+  # A FFI::Struct means to mirror a C struct.
+  #
+  # A Struct is defined as:
+  #  class MyStruct < FFI::Struct
+  #    layout :value1, :int,
+  #           :value2, :double
+  #  end
+  # and is used as:
+  #  my_struct = MyStruct.new
+  #  my_struct[:value1] = 12
+  #
+  # For more information, see http://github.com/ffi/ffi/wiki/Structs
   class Struct
+
+    # @param [AbstractMemory] pointer
+    # @param [Array] args
+    # @return [self]
+    def initialize(pointer = nil, *args)
+      if args.empty?
+        layout = self.class.instance_variable_get(:@layout)
+      else
+        layout = self.class.layout(*args)
+      end
+      unless FFI::StructLayout === layout
+        raise RuntimeError, "invalid Struct layout for #{self.class}"
+      end
+
+      if pointer
+        unless FFI::AbstractMemory === pointer
+          raise ArgumentError, "Invalid Memory object"
+        end
+        @pointer = pointer
+      else
+        @pointer = MemoryPointer.new(layout.size, 1, true)
+      end
+
+      initialize_backend(layout, @pointer)
+    end
 
     # Get struct size
     # @return [Numeric]

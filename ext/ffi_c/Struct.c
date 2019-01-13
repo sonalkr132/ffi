@@ -97,44 +97,16 @@ struct_allocate(VALUE klass)
     return obj;
 }
 
-/*
- * call-seq: initialize
- * @overload initialize(pointer, *args)
- *  @param [AbstractMemory] pointer
- *  @param [Array] args
- * @return [self]
- */
 static VALUE
-struct_initialize(int argc, VALUE* argv, VALUE self)
+struct_initialize_backend(VALUE self, VALUE rbLayout, VALUE rbPointer)
 {
     Struct* s;
-    VALUE rbPointer = Qnil, rest = Qnil, klass = CLASS_OF(self);
-    int nargs;
-
     Data_Get_Struct(self, Struct, s);
-    
-    nargs = rb_scan_args(argc, argv, "01*", &rbPointer, &rest);
-
-    /* Call up into ruby code to adjust the layout */
-    if (nargs > 1) {
-        s->rbLayout = rb_funcall2(CLASS_OF(self), id_layout, (int) RARRAY_LEN(rest), RARRAY_PTR(rest));
-    } else {
-        s->rbLayout = struct_class_layout(klass);
-    }
-
-    if (!rb_obj_is_kind_of(s->rbLayout, rbffi_StructLayoutClass)) {
-        rb_raise(rb_eRuntimeError, "Invalid Struct layout");
-    }
-
+    s->rbLayout = rbLayout;
     Data_Get_Struct(s->rbLayout, StructLayout, s->layout);
-    
-    if (rbPointer != Qnil) {
-        s->pointer = MEMORY(rbPointer);
-        s->rbPointer = rbPointer;
-    } else {
-        struct_malloc(s);
-    }
 
+    s->rbPointer = rbPointer;
+    s->pointer = MEMORY(rbPointer);
     return self;
 }
 
@@ -749,22 +721,6 @@ rbffi_Struct_Init(VALUE moduleFFI)
 
     rbffi_StructLayout_Init(moduleFFI);
 
-    /*
-     * Document-class: FFI::Struct
-     *
-     * A FFI::Struct means to mirror a C struct.
-     *
-     * A Struct is defined as:
-     *  class MyStruct < FFI::Struct
-     *    layout :value1, :int,
-     *           :value2, :double
-     *  end
-     * and is used as:
-     *  my_struct = MyStruct.new
-     *  my_struct[:value1] = 12
-     *
-     * For more information, see http://github.com/ffi/ffi/wiki/Structs
-     */
     rbffi_StructClass = rb_define_class_under(moduleFFI, "Struct", rb_cObject);
     StructClass = rbffi_StructClass; // put on a line alone to help RDoc
     rb_global_variable(&rbffi_StructClass);
@@ -784,7 +740,7 @@ rbffi_Struct_Init(VALUE moduleFFI)
 
 
     rb_define_alloc_func(StructClass, struct_allocate);
-    rb_define_method(StructClass, "initialize", struct_initialize, -1);
+    rb_define_method(StructClass, "initialize_backend", struct_initialize_backend, 2);
     rb_define_method(StructClass, "initialize_copy", struct_initialize_copy, 1);
     rb_define_method(StructClass, "order", struct_order, -1);
     
@@ -826,4 +782,3 @@ rbffi_Struct_Init(VALUE moduleFFI)
     id_to_ptr = rb_intern("to_ptr");
     id_to_s = rb_intern("to_s");
 }
-
