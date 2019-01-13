@@ -79,6 +79,24 @@ module FFI
       initialize_backend(@layout, @pointer)
     end
 
+    def initialize_copy(other)
+      return self if equal?(other)
+
+      @layout = other.layout
+
+      # A new MemoryPointer instance is allocated here instead of just calling
+      # #dup on rbPointer, since the Pointer may not know its length, or may
+      # be longer than just this struct.
+      if other.pointer
+        @pointer = MemoryPointer.new(@layout.size, 1, false)
+        @pointer.__copy_from__(other.pointer, @layout.size)
+      else
+        @pointer = other.pointer
+      end
+      initialize_backend(@layout, @pointer)
+      initialize_copy_backend(other)
+    end
+
     # @param [AbstractMemory] pointer
     # @return [self]
     # Make Struct point to +pointer+.

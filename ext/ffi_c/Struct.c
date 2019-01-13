@@ -110,45 +110,18 @@ struct_initialize_backend(VALUE self, VALUE rbLayout, VALUE rbPointer)
     return self;
 }
 
-/*
- * call-seq: initialize_copy(other)
- * @return [nil]
- * DO NOT CALL THIS METHOD
- */
 static VALUE
-struct_initialize_copy(VALUE self, VALUE other)
+struct_initialize_copy_backend(VALUE self, VALUE other)
 {
     Struct* src;
     Struct* dst;
-    
     Data_Get_Struct(self, Struct, dst);
     Data_Get_Struct(other, Struct, src);
-    if (dst == src) {
-        return self;
-    }
-    
-    dst->rbLayout = src->rbLayout;
-    dst->layout = src->layout;
-    
-    /*
-     * A new MemoryPointer instance is allocated here instead of just calling
-     * #dup on rbPointer, since the Pointer may not know its length, or may
-     * be longer than just this struct.
-     */
-    if (src->pointer->address != NULL) {
-        dst->rbPointer = rbffi_MemoryPointer_NewInstance(1, src->layout->size, false);
-        dst->pointer = MEMORY(dst->rbPointer);
-        memcpy(dst->pointer->address, src->pointer->address, src->layout->size);
-    } else {
-        dst->rbPointer = src->rbPointer;
-        dst->pointer = src->pointer;
-    }
 
     if (src->layout->referenceFieldCount > 0) {
         dst->rbReferences = ALLOC_N(VALUE, dst->layout->referenceFieldCount);
         memcpy(dst->rbReferences, src->rbReferences, dst->layout->referenceFieldCount * sizeof(VALUE));
     }
-        
     return self;
 }
 
@@ -629,8 +602,8 @@ rbffi_Struct_Init(VALUE moduleFFI)
 
 
     rb_define_alloc_func(StructClass, struct_allocate);
-    rb_define_method(StructClass, "initialize_backend", struct_initialize_backend, 2);
-    rb_define_method(StructClass, "initialize_copy", struct_initialize_copy, 1);
+    rb_define_private_method(StructClass, "initialize_backend", struct_initialize_backend, 2);
+    rb_define_private_method(StructClass, "initialize_copy_backend", struct_initialize_copy_backend, 1);
     
     rb_define_alias(rb_singleton_class(StructClass), "alloc_in", "new");
     rb_define_alias(rb_singleton_class(StructClass), "alloc_out", "new");
