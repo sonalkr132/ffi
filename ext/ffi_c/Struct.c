@@ -92,7 +92,6 @@ struct_allocate(VALUE klass)
     VALUE obj = Data_Make_Struct(klass, Struct, struct_mark, struct_free, s);
     
     s->rbPointer = Qnil;
-    s->rbLayout = Qnil;
 
     return obj;
 }
@@ -102,8 +101,7 @@ struct_initialize_backend(VALUE self, VALUE rbLayout, VALUE rbPointer)
 {
     Struct* s;
     Data_Get_Struct(self, Struct, s);
-    s->rbLayout = rbLayout;
-    Data_Get_Struct(s->rbLayout, StructLayout, s->layout);
+    Data_Get_Struct(rbLayout, StructLayout, s->layout);
 
     s->rbPointer = rbPointer;
     s->pointer = MEMORY(rbPointer);
@@ -144,14 +142,15 @@ struct_class_layout(VALUE klass)
 static StructLayout*
 struct_layout(VALUE self)
 {
+    VALUE rbLayout;
     Struct* s = (Struct *) DATA_PTR(self);
     if (s->layout != NULL) {
         return s->layout;
     }
 
     if (s->layout == NULL) {
-        s->rbLayout = struct_class_layout(CLASS_OF(self));
-        Data_Get_Struct(s->rbLayout, StructLayout, s->layout);
+        rbLayout = struct_class_layout(CLASS_OF(self));
+        Data_Get_Struct(rbLayout, StructLayout, s->layout);
     }
 
     return s->layout;
@@ -191,7 +190,6 @@ static void
 struct_mark(Struct *s)
 {
     rb_gc_mark(s->rbPointer);
-    rb_gc_mark(s->rbLayout);
     if (s->rbReferences != NULL) {
         rb_gc_mark_locations(&s->rbReferences[0], &s->rbReferences[s->layout->referenceFieldCount]);
     }
