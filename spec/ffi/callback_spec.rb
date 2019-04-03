@@ -500,27 +500,39 @@ describe "Callback with " do
     expect(v).to eq(-1)
   end
 
+  def testCallbackU8rV(value, &block)
+    v1 = 0xdeadbeef
+    LibTest.testCallbackU8rV(value) { |i| v1 = yield(i) }
+
+    v2 = 0xdeadbeef
+    fun = FFI::Function.new(:void, [:uchar]) { |i| v2 = yield(i) }
+    LibTest.testCallbackU8rV(fun, value)
+    raise "FFI::Function (#{v2}) not consistent with direct callback (#{v1})" unless v1 == v2
+
+    v1
+  end
+
   it ":uchar (0) argument" do
     v = 0xdeadbeef
-    LibTest.testCallbackU8rV(0) { |i| v = i }
+    testCallbackU8rV(0) { |i| v = i }
     expect(v).to eq(0)
   end
 
   it ":uchar (127) argument" do
     v = 0xdeadbeef
-    LibTest.testCallbackU8rV(127) { |i| v = i }
+    testCallbackU8rV(127) { |i| v = i }
     expect(v).to eq(127)
   end
 
   it ":uchar (128) argument" do
     v = 0xdeadbeef
-    LibTest.testCallbackU8rV(128) { |i| v = i }
+    testCallbackU8rV(128) { |i| v = i }
     expect(v).to eq(128)
   end
 
   it ":uchar (255) argument" do
     v = 0xdeadbeef
-    LibTest.testCallbackU8rV(255) { |i| v = i }
+    testCallbackU8rV(255) { |i| v = i }
     expect(v).to eq(255)
   end
 
