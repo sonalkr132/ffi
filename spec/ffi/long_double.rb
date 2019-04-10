@@ -7,6 +7,7 @@ require File.expand_path(File.join(File.dirname(__FILE__), "spec_helper"))
 require 'bigdecimal'
 
 describe ":long_double arguments and return values" do
+  next # long double
   module LibTest
     extend FFI::Library
     ffi_lib TestLibrary::PATH
