@@ -616,6 +616,7 @@ describe FFI::Struct, ' with a nested array of structs'  do
 end
 
 describe FFI::Struct, ' by value'  do
+  next # struct by value
   module LibTest
     extend FFI::Library
     ffi_lib TestLibrary::PATH
